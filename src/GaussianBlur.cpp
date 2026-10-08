@@ -2,12 +2,12 @@
 #include "../include/GaussianBlur.h"
 //using namespace std;
 namespace GaussianBlur{
-    void applyFilter(int r, int c, const std::vector<std::vector<BMP::RGBPixel>> &original_pixels, std::vector<std::vector<BMP::RGBPixel>> &destination_pixels){
+    void applyFilter(int r, int c, const BMP::Image &original_pixels, BMP::Image &destination_pixels){
         int kernelSize = GaussianKernel.size();
         int halfKernel = kernelSize/2;
         int sumKernel = 0;
 
-        int height = original_pixels.size(), width = original_pixels[0].size();
+        int height = original_pixels.height, width = original_pixels.width;
         int sum_red = 0, sum_green = 0, sum_blue = 0;
         for (int dr = -halfKernel; dr <= halfKernel; ++dr){
             for (int dc = -halfKernel; dc <= halfKernel; ++dc){
@@ -17,18 +17,18 @@ namespace GaussianBlur{
                 }
 
                 sumKernel += GaussianKernel[dr + halfKernel][dc + halfKernel];
-                sum_red += static_cast<int>(original_pixels[nr][nc].red) * GaussianKernel[dr + halfKernel][dc + halfKernel];
-                sum_green += static_cast<int>(original_pixels[nr][nc].green) * GaussianKernel[dr + halfKernel][dc + halfKernel];
-                sum_blue += static_cast<int>(original_pixels[nr][nc].blue) * GaussianKernel[dr + halfKernel][dc + halfKernel];
+                sum_red += static_cast<int>(original_pixels(nr, nc).red) * GaussianKernel[dr + halfKernel][dc + halfKernel];
+                sum_green += static_cast<int>(original_pixels(nr, nc).green) * GaussianKernel[dr + halfKernel][dc + halfKernel];
+                sum_blue += static_cast<int>(original_pixels(nr, nc).blue) * GaussianKernel[dr + halfKernel][dc + halfKernel];
             }
         }
 
-        destination_pixels[r][c] = {static_cast<uint8_t>(sum_blue/sumKernel), static_cast<uint8_t>(sum_green/sumKernel), static_cast<uint8_t>(sum_red/sumKernel)};
+        destination_pixels(r, c) = {static_cast<uint8_t>(sum_blue/sumKernel), static_cast<uint8_t>(sum_green/sumKernel), static_cast<uint8_t>(sum_red/sumKernel)};
     }
 
-    std::vector<std::vector<BMP::RGBPixel>> applyFilterAll(const std::vector<std::vector<BMP::RGBPixel>> &original_pixels){
-        int height = original_pixels.size(), width = original_pixels[0].size();
-        std::vector<std::vector<BMP::RGBPixel>> destination = original_pixels;
+    BMP::Image applyFilterAll(const BMP::Image &original_pixels){
+        int height = original_pixels.height, width = original_pixels.width;
+        BMP::Image destination = original_pixels;
         
         for (int r = 0; r < height; ++r){
             for (int c = 0; c < width; ++c){
