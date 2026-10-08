@@ -47,10 +47,29 @@ namespace BMP {
                 std::cerr << "Unsupported bit depth: " << InfoHeader.bitCount << "\n";
                 return Image{};
             }
-            for (int c = 0; c < width; ++c) {
-                file.read(reinterpret_cast<char*>(&pixels(target_r, c)), sizeof(RGBPixel));
-                if (InfoHeader.bitCount == 32){
-                    file.seekg(1, std::ios::cur);
+            std::vector<char> row(rowStride);
+
+            file.read(row.data(), static_cast<std::streamsize>(row.size()));
+            if (!file) {
+                std::cerr << "Failed to read pixel data.\n";
+                return {};
+            }
+
+            const int targetRow = isTopDown ? r : height - 1 - r;
+            auto* destination =
+                pixels.data.data() + static_cast<std::size_t>(targetRow) * width;
+
+            if (InfoHeader.bitCount == 24) {
+                std::memcpy(destination, row.data(),
+                    static_cast<std::size_t>(width) * sizeof(RGBPixel));
+            } else {
+                for (int c = 0; c < width; ++c) {
+                    const auto offset = static_cast<std::size_t>(c) * 4;
+                    destination[c] = {
+                        static_cast<std::uint8_t>(row[offset]),
+                        static_cast<std::uint8_t>(row[offset + 1]),
+                        static_cast<std::uint8_t>(row[offset + 2])
+                    };
                 }
             }
             if (padding > 0) {
@@ -98,10 +117,11 @@ namespace BMP {
 
         uint8_t paddingBytes[3] = {0, 0, 0};
         for (int r = height - 1; r >= 0; --r) {
-            for (int c = 0; c < width; ++c){
-                file.write(reinterpret_cast<const char*>(&pixels(r, c)), sizeof(RGBPixel));
-            }
-            //file.write(reinterpret_cast<const char*>(pixels[r].data()), rowSizeWithoutPadding);
+            const auto* row =
+                pixels.data.data() + static_cast<std::size_t>(r) * width;
+
+            file.write(reinterpret_cast<const char*>(row), rowSizeWithoutPadding);
+
             if (padding > 0) {
                 file.write(reinterpret_cast<const char*>(paddingBytes), padding);
             }

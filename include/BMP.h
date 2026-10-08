@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include <cmath>
-
+#include <cstring>
 
 namespace BMP{
     #pragma pack(push, 1)
