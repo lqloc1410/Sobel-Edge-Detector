@@ -36,10 +36,32 @@ namespace BMP{
         uint8_t red;
     };
 
-    
-
     #pragma pack(pop)
 
-    std::vector<std::vector<RGBPixel>> BMPParser(std::string filename);
-    bool BMPWriter(const std::string &filename, const std::vector<std::vector<RGBPixel>> &pixels);
+    struct Image{
+        size_t height = 0;
+        size_t width = 0;
+        std::vector<RGBPixel> data;
+
+        Image() = default;
+        Image(int h, int w){
+            height = h;
+            width = w;
+            data.resize(h * w);
+        }
+
+        RGBPixel& operator()(size_t r, size_t c) {
+            return data[r * width + c];
+        }
+
+        const RGBPixel& operator()(size_t r, size_t c) const {
+            return data[r * width + c];
+        }
+        bool empty() const{
+            return width == 0 || height == 0;
+        }
+    };
+
+    Image BMPParser(std::string filename);
+    bool BMPWriter(const std::string &filename, const Image &pixels);
 }

@@ -2,12 +2,12 @@
 
 namespace BMP {
 
-    std::vector<std::vector<RGBPixel>> BMPParser(std::string filename) {
+    Image BMPParser(std::string filename) {
         std::ifstream file(filename, std::ios::binary);
 
         if (!file.is_open()) {
             std::cerr << "Failed to open file.\n";
-            return {};
+            return Image{};
         }
 
         BMPFileHeader FileHeader{};
@@ -37,24 +37,22 @@ namespace BMP {
         int rowStride = (rowSizeWithoutPadding + 3) & ~3;
         int padding = rowStride - rowSizeWithoutPadding;
 
-        std::vector<std::vector<RGBPixel>> pixels(height, std::vector<RGBPixel>(width));
+        Image pixels(height, width);
         bool isTopDown = InfoHeader.height < 0;
 
         for (int r = 0; r < height; ++r) {
             int target_r = isTopDown ? r : (height - 1 - r);
 
-            if (InfoHeader.bitCount == 24) {
-                file.read(reinterpret_cast<char*>(pixels[target_r].data()), width * sizeof(RGBPixel));
-            } else if (InfoHeader.bitCount == 32) {
-                for (int c = 0; c < width; ++c) {
-                    file.read(reinterpret_cast<char*>(&pixels[target_r][c]), sizeof(RGBPixel));
-                    file.seekg(1, std::ios::cur); // Skip alpha byte
-                }
-            } else {
+            if (InfoHeader.bitCount != 24 && InfoHeader.bitCount != 32){
                 std::cerr << "Unsupported bit depth: " << InfoHeader.bitCount << "\n";
-                return {};
+                return Image{};
             }
-
+            for (int c = 0; c < width; ++c) {
+                file.read(reinterpret_cast<char*>(&pixels(target_r, c)), sizeof(RGBPixel));
+                if (InfoHeader.bitCount == 32){
+                    file.seekg(1, std::ios::cur);
+                }
+            }
             if (padding > 0) {
                 file.seekg(padding, std::ios::cur);
             }
@@ -63,8 +61,8 @@ namespace BMP {
         return pixels;
     }
 
-    bool BMPWriter(const std::string &filename, const std::vector<std::vector<RGBPixel>> &pixels) {
-        if (pixels.empty() || pixels[0].empty()) return false;
+    bool BMPWriter(const std::string &filename, const Image &pixels) {
+        if (pixels.empty()) return false;
 
         std::ofstream file(filename, std::ios::binary);
         if (!file.is_open()) {
@@ -72,8 +70,8 @@ namespace BMP {
             return false;
         }
 
-        int height = pixels.size();
-        int width = pixels[0].size();
+        int height = pixels.height;
+        int width = pixels.width;
 
         int rowSizeWithoutPadding = width * static_cast<int>(sizeof(RGBPixel));
         int rowStride = (rowSizeWithoutPadding + 3) & ~3;
@@ -100,7 +98,10 @@ namespace BMP {
 
         uint8_t paddingBytes[3] = {0, 0, 0};
         for (int r = height - 1; r >= 0; --r) {
-            file.write(reinterpret_cast<const char*>(pixels[r].data()), rowSizeWithoutPadding);
+            for (int c = 0; c < width; ++c){
+                file.write(reinterpret_cast<const char*>(&pixels(r, c)), sizeof(RGBPixel));
+            }
+            //file.write(reinterpret_cast<const char*>(pixels[r].data()), rowSizeWithoutPadding);
             if (padding > 0) {
                 file.write(reinterpret_cast<const char*>(paddingBytes), padding);
             }
