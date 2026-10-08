@@ -1,7 +1,8 @@
 #pragma once
+#include "BMP.h"
 
 namespace GaussianBlur{
-    inline std::vector<std::vector<int>> GaussianKernel = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
+    inline int GaussianKernel[3][3] = {{1, 2, 1}, {2, 4, 2}, {1, 2, 1}};
 
     void applyFilter(int r, int c, const BMP::Image &original_pixels, BMP::Image &destination_pixels);
 

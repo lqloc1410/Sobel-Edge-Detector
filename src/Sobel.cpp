@@ -6,8 +6,8 @@
 #include <chrono>
 #include <string_view>
 
-std::vector<std::vector<int>> SobelKernelX = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
-std::vector<std::vector<int>> SobelKernelY = {{1, 2, 1}, {0, 0, 0}, {-1, -2, -1}};
+int16_t SobelKernelX[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+int16_t SobelKernelY[3][3] = {{1, 2, 1}, {0, 0, 0}, {-1, -2, -1}};
 
 class Timer {
 public:
@@ -34,12 +34,12 @@ private:
 };
 
 struct ConvolutionResult{
-    int resX = 0;
-    int resY = 0;
+    int16_t resX = 0;
+    int16_t resY = 0;
 };
 
 inline ConvolutionResult applyConvolution(int r, int c, const BMP::Image &original_pixels){
-    int kernelSize = SobelKernelX.size();
+    int kernelSize = 3;
     int halfKernel = kernelSize/2;
     int sumKernel = 0;
 
@@ -50,8 +50,8 @@ inline ConvolutionResult applyConvolution(int r, int c, const BMP::Image &origin
             int nr = std::min(std::max(r + dr, 0), height - 1);
             int nc = std::min(std::max(c + dc, 0), width - 1);
 
-            res.resX += static_cast<int>(original_pixels(nr, nc).red) * SobelKernelX[dr + halfKernel][dc + halfKernel];
-            res.resY += static_cast<int>(original_pixels(nr, nc).red) * SobelKernelY[dr + halfKernel][dc + halfKernel];
+            res.resX += static_cast<int16_t>(original_pixels(nr, nc).red) * SobelKernelX[dr + halfKernel][dc + halfKernel];
+            res.resY += static_cast<int16_t>(original_pixels(nr, nc).red) * SobelKernelY[dr + halfKernel][dc + halfKernel];
         }
     }
 
@@ -61,15 +61,15 @@ inline ConvolutionResult applyConvolution(int r, int c, const BMP::Image &origin
 inline BMP::Image applyFilter(const BMP::Image &original_pixels){
     int height = original_pixels.height, width = original_pixels.width;
 
-    std::vector<int> intermediate(height*width);
-    BMP::Image destination = original_pixels;
+    std::vector<int16_t> intermediate(height*width);
+    BMP::Image destination (height, width);
     
-    int min_val = INT_MAX/2, max_val = 0;
+    int16_t min_val = std::numeric_limits<int16_t>::max(), max_val = 0;
     #pragma omp parallel for reduction(min:min_val) reduction(max:max_val) schedule(static)
     for (int r = 0; r < height; ++r){
         for (int c = 0; c < width; ++c){
             ConvolutionResult tmp = applyConvolution(r, c, original_pixels);
-            intermediate[r*width + c] = sqrt(tmp.resX*tmp.resX + tmp.resY*tmp.resY);
+            intermediate[r*width + c] = std::sqrt((static_cast<int>(tmp.resX)*tmp.resX) + (static_cast<int>(tmp.resY)*tmp.resY));
 
             min_val = std::min(min_val, intermediate[r*width + c]);
             max_val = std::max(max_val, intermediate[r*width + c]);
