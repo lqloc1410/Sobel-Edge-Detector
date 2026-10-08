@@ -35,20 +35,17 @@ namespace BMP {
 
         int rowSizeWithoutPadding = width * bytesPerPixel;
         int rowStride = (rowSizeWithoutPadding + 3) & ~3;
-        int padding = rowStride - rowSizeWithoutPadding;
 
         Image pixels(height, width);
         bool isTopDown = InfoHeader.height < 0;
 
+        if (InfoHeader.bitCount != 24 && InfoHeader.bitCount != 32) {
+            std::cerr << "Unsupported bit depth: " << InfoHeader.bitCount << "\n";
+            return {};
+        }
+
+        std::vector<char> row(rowStride);
         for (int r = 0; r < height; ++r) {
-            int target_r = isTopDown ? r : (height - 1 - r);
-
-            if (InfoHeader.bitCount != 24 && InfoHeader.bitCount != 32){
-                std::cerr << "Unsupported bit depth: " << InfoHeader.bitCount << "\n";
-                return Image{};
-            }
-            std::vector<char> row(rowStride);
-
             file.read(row.data(), static_cast<std::streamsize>(row.size()));
             if (!file) {
                 std::cerr << "Failed to read pixel data.\n";
@@ -71,9 +68,6 @@ namespace BMP {
                         static_cast<std::uint8_t>(row[offset + 2])
                     };
                 }
-            }
-            if (padding > 0) {
-                file.seekg(padding, std::ios::cur);
             }
         }
 
