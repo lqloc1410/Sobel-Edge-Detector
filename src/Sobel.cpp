@@ -16,7 +16,7 @@ public:
         : m_name(name), m_start(std::chrono::steady_clock::now()) {}
 
     // Destructor calculates and prints the elapsed time
-    ~Timer() {
+    void StopTimer() {
         auto end = std::chrono::steady_clock::now();
         std::chrono::duration<double, std::milli> elapsed = end - m_start;
         std::cout << "[" << m_name << "] Elapsed time: " << elapsed.count() << " ms\n";
@@ -94,17 +94,26 @@ int main(){
     std::string filename;
     std::cin >> filename;
 
-    Timer timer("Find edges in image");
+    Timer total("Full program");
 
+    Timer timer("Image parsing");
     BMP::Image image = BMP::BMPParser(filename);
-
+    timer.StopTimer();
+    
+    Timer timer2("Apply grayscale");
     GrayscaleConverter::applyGrayscale(image);
+    timer2.StopTimer();
 
+    Timer timer3("Apply blur");
     BMP::Image image_blurred = GaussianBlur::applyFilterAll(image);
+    timer3.StopTimer();
 
-    Timer timer2("Apply Sobel");
+    Timer timer4("Apply Sobel");
     BMP::Image image_edge = applyFilter(image_blurred);
+    timer4.StopTimer();
 
-
+    Timer timer5("Write file");
     BMP::BMPWriter("result.bmp", image_edge);
+    timer5.StopTimer();
+    total.StopTimer();
 }
