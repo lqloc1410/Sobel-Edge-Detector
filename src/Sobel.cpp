@@ -38,31 +38,31 @@ struct ConvolutionResult{
     int resY = 0;
 };
 
-ConvolutionResult applyConvolution(int r, int c, const std::vector<std::vector<BMP::RGBPixel>> &original_pixels){
+ConvolutionResult applyConvolution(int r, int c, const BMP::Image &original_pixels){
     int kernelSize = SobelKernelX.size();
     int halfKernel = kernelSize/2;
     int sumKernel = 0;
 
-    int height = original_pixels.size(), width = original_pixels[0].size();
+    int height = original_pixels.height, width = original_pixels.width;
     ConvolutionResult res;
     for (int dr = -halfKernel; dr <= halfKernel; ++dr){
         for (int dc = -halfKernel; dc <= halfKernel; ++dc){
             int nr = std::min(std::max(r + dr, 0), height - 1);
             int nc = std::min(std::max(c + dc, 0), width - 1);
 
-            res.resX += static_cast<int>(original_pixels[nr][nc].red) * SobelKernelX[dr + halfKernel][dc + halfKernel];
-            res.resY += static_cast<int>(original_pixels[nr][nc].red) * SobelKernelY[dr + halfKernel][dc + halfKernel];
+            res.resX += static_cast<int>(original_pixels(nr, nc).red) * SobelKernelX[dr + halfKernel][dc + halfKernel];
+            res.resY += static_cast<int>(original_pixels(nr, nc).red) * SobelKernelY[dr + halfKernel][dc + halfKernel];
         }
     }
 
     return res;
 }
 
-std::vector<std::vector<BMP::RGBPixel>> applyFilter(const std::vector<std::vector<BMP::RGBPixel>> &original_pixels){
-    int height = original_pixels.size(), width = original_pixels[0].size();
+BMP::Image applyFilter(const BMP::Image &original_pixels){
+    int height = original_pixels.height, width = original_pixels.height;
 
     std::vector<std::vector<int>> intermediate(height, std::vector<int>(width, 0));
-    std::vector<std::vector<BMP::RGBPixel>> destination = original_pixels;
+    BMP::Image destination = original_pixels;
     
     int min_val = INT_MAX/2, max_val = 0;
     for (int r = 0; r < height; ++r){
@@ -79,9 +79,9 @@ std::vector<std::vector<BMP::RGBPixel>> applyFilter(const std::vector<std::vecto
     for (int r = 0; r < height; ++r){
         for (int c = 0; c < width; ++c){
             uint8_t pixel_out = static_cast<uint8_t>((intermediate[r][c] - min_val)*255/(range));
-            destination[r][c].blue = pixel_out;
-            destination[r][c].green = pixel_out;
-            destination[r][c].red = pixel_out;
+            destination(r, c).blue = pixel_out;
+            destination(r, c).green = pixel_out;
+            destination(r, c).red = pixel_out;
         }
     }
 
@@ -96,14 +96,14 @@ int main(){
 
     Timer timer("Find edges in image");
 
-    std::vector<std::vector<BMP::RGBPixel>> image = BMP::BMPParser(filename);
+    BMP::Image image = BMP::BMPParser(filename);
 
-    GrayscaleConverter::grayscale_converter_all(image);
+    GrayscaleConverter::applyGrayscale(image);
 
-    std::vector<std::vector<BMP::RGBPixel>> image_blurred = GaussianBlur::applyFilterAll(image);
+    BMP::Image image_blurred = GaussianBlur::applyFilterAll(image);
 
     Timer timer2("Apply Sobel");
-    std::vector<std::vector<BMP::RGBPixel>> image_edge = applyFilter(image_blurred);
+    BMP::Image image_edge = applyFilter(image_blurred);
 
 
     BMP::BMPWriter("result.bmp", image_edge);

@@ -13,13 +13,13 @@ namespace GrayscaleConverter{
         original = {converted_value, converted_value, converted_value};
     }
 
-    void grayscale_converter_all(std::vector<std::vector<BMP::RGBPixel>> &destination){
-        int height = destination.size();
-        int width = destination[0].size();
+    void applyGrayscale(BMP::Image &destination){
+        int height = destination.height;
+        int width = destination.width;
 
         for (int r = 0; r < height; ++r){
             for (int c = 0; c < width; ++c){
-                grayscale_converter(destination[r][c]);
+                grayscale_converter(destination(r, c));
             }
         }
     }
