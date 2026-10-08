@@ -5,19 +5,9 @@
 #include <cmath>
 #include <chrono>
 #include <string_view>
-#include <array>
 
-constexpr std::array<int, 9> SobelKernelX{
-    -1, 0, 1,
-    -2, 0, 2,
-    -1, 0, 1
-};
-
-constexpr std::array<int, 9> SobelKernelY{
-     1, 2, 1,
-     0, 0, 0,
-    -1,-2,-1
-};
+std::vector<std::vector<int>> SobelKernelX = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+std::vector<std::vector<int>> SobelKernelY = {{1, 2, 1}, {0, 0, 0}, {-1, -2, -1}};
 
 class Timer {
 public:
@@ -60,10 +50,8 @@ inline ConvolutionResult applyConvolution(int r, int c, const BMP::Image &origin
             int nr = std::min(std::max(r + dr, 0), height - 1);
             int nc = std::min(std::max(c + dc, 0), width - 1);
 
-            const auto& pixel = original_pixels(nr, nc);
-            const int k = (dr + 1) * 3 + (dc + 1);
-            res.resX += pixel.red * SobelKernelX[k];
-            res.resY += pixel.red * SobelKernelY[k];
+            res.resX += static_cast<int>(original_pixels(nr, nc).red) * SobelKernelX[dr + halfKernel][dc + halfKernel];
+            res.resY += static_cast<int>(original_pixels(nr, nc).red) * SobelKernelY[dr + halfKernel][dc + halfKernel];
         }
     }
 
