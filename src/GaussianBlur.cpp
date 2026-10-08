@@ -2,7 +2,7 @@
 #include "../include/GaussianBlur.h"
 //using namespace std;
 namespace GaussianBlur{
-    void applyFilter(int r, int c, const BMP::Image &original_pixels, BMP::Image &destination_pixels){
+    inline void applyFilter(int r, int c, const BMP::Image &original_pixels, BMP::Image &destination_pixels){
         int kernelSize = GaussianKernel.size();
         int halfKernel = kernelSize/2;
         int sumKernel = 0;
@@ -30,6 +30,7 @@ namespace GaussianBlur{
         int height = original_pixels.height, width = original_pixels.width;
         BMP::Image destination = original_pixels;
         
+        #pragma omp parallel for schedule(static)
         for (int r = 0; r < height; ++r){
             for (int c = 0; c < width; ++c){
                 applyFilter(r, c, original_pixels, destination);

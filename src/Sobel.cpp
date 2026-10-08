@@ -38,7 +38,7 @@ struct ConvolutionResult{
     int resY = 0;
 };
 
-ConvolutionResult applyConvolution(int r, int c, const BMP::Image &original_pixels){
+inline ConvolutionResult applyConvolution(int r, int c, const BMP::Image &original_pixels){
     int kernelSize = SobelKernelX.size();
     int halfKernel = kernelSize/2;
     int sumKernel = 0;
@@ -58,27 +58,30 @@ ConvolutionResult applyConvolution(int r, int c, const BMP::Image &original_pixe
     return res;
 }
 
-BMP::Image applyFilter(const BMP::Image &original_pixels){
+inline BMP::Image applyFilter(const BMP::Image &original_pixels){
     int height = original_pixels.height, width = original_pixels.width;
 
-    std::vector<std::vector<int>> intermediate(height, std::vector<int>(width, 0));
+    std::vector<int> intermediate(height*width);
     BMP::Image destination = original_pixels;
     
     int min_val = INT_MAX/2, max_val = 0;
+    #pragma omp parallel for reduction(min:min_val) reduction(max:max_val) schedule(static)
     for (int r = 0; r < height; ++r){
         for (int c = 0; c < width; ++c){
             ConvolutionResult tmp = applyConvolution(r, c, original_pixels);
-            intermediate[r][c] = sqrt(tmp.resX*tmp.resX + tmp.resY*tmp.resY);
+            intermediate[r*width + c] = sqrt(tmp.resX*tmp.resX + tmp.resY*tmp.resY);
 
-            min_val = std::min(min_val, intermediate[r][c]);
-            max_val = std::max(max_val, intermediate[r][c]);
+            min_val = std::min(min_val, intermediate[r*width + c]);
+            max_val = std::max(max_val, intermediate[r*width + c]);
         }
     }
 
+    
     int range = max_val - min_val > 0 ? max_val - min_val : 1;
+    #pragma omp parallel for schedule(static)
     for (int r = 0; r < height; ++r){
         for (int c = 0; c < width; ++c){
-            uint8_t pixel_out = static_cast<uint8_t>((intermediate[r][c] - min_val)*255/(range));
+            uint8_t pixel_out = static_cast<uint8_t>((intermediate[r*width + c] - min_val)*255/(range));
             destination(r, c).blue = pixel_out;
             destination(r, c).green = pixel_out;
             destination(r, c).red = pixel_out;
