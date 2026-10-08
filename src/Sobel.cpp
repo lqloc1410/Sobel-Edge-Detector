@@ -59,7 +59,7 @@ ConvolutionResult applyConvolution(int r, int c, const BMP::Image &original_pixe
 }
 
 BMP::Image applyFilter(const BMP::Image &original_pixels){
-    int height = original_pixels.height, width = original_pixels.height;
+    int height = original_pixels.height, width = original_pixels.width;
 
     std::vector<std::vector<int>> intermediate(height, std::vector<int>(width, 0));
     BMP::Image destination = original_pixels;
