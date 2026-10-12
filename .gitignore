@@ -1,3 +1,4 @@
 *.bmp
-*.json
-*.exe
+/build
+/.vscode
+/build-ninja

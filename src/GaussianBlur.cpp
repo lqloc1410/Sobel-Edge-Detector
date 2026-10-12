@@ -1,5 +1,5 @@
-#include "../include/BMP.h"
-#include "../include/GaussianBlur.h"
+#include "BMP.hpp"
+#include "GaussianBlur.hpp"
 //using namespace std;
 namespace GaussianBlur{
     inline void applyFilter(int r, int c, const BMP::Image &original_pixels, BMP::Image &destination_pixels){

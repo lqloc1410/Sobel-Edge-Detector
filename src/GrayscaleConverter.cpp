@@ -1,4 +1,4 @@
-#include "../include/GrayscaleConverter.h"
+#include "GrayscaleConverter.hpp"
 
 namespace GrayscaleConverter{
     inline void grayscale_converter(BMP::RGBPixel &original){

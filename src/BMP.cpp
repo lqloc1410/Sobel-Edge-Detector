@@ -1,7 +1,10 @@
-#include "../include/BMP.h"
+#include "BMP.hpp"
+#include <cmath>
+#include <cstring>
+#include <iostream>
+#include <fstream>
 
 namespace BMP {
-
     Image BMPParser(std::string filename) {
         std::ifstream file(filename, std::ios::binary);
 
