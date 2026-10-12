@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <cstdint>
+#include <cstddef>
 #include <vector>
 
 namespace BMP{
@@ -34,23 +35,26 @@ namespace BMP{
 
     #pragma pack(pop)
 
-    struct Image{
+    // The raw header reads and the memcpy of pixel rows rely on these exact layouts.
+    static_assert(sizeof(BMPFileHeader) == 14, "BMPFileHeader must be 14 bytes");
+    static_assert(sizeof(BMPInfoHeader) == 40, "BMPInfoHeader must be 40 bytes");
+    static_assert(sizeof(RGBPixel) == 3, "RGBPixel must be 3 bytes");
+
+    // Row-major 2D pixel buffer. Image = 3 bytes/pixel, GrayImage = 1 byte/pixel.
+    template <typename Pixel>
+    struct BasicImage{
         size_t height = 0;
         size_t width = 0;
-        std::vector<RGBPixel> data;
+        std::vector<Pixel> data;
 
-        Image() = default;
-        Image(int h, int w){
-            height = h;
-            width = w;
-            data.resize(h * w);
-        }
+        BasicImage() = default;
+        BasicImage(size_t h, size_t w) : height(h), width(w), data(h * w) {}
 
-        RGBPixel& operator()(size_t r, size_t c) {
+        Pixel& operator()(size_t r, size_t c) {
             return data[r * width + c];
         }
 
-        const RGBPixel& operator()(size_t r, size_t c) const {
+        const Pixel& operator()(size_t r, size_t c) const {
             return data[r * width + c];
         }
         bool empty() const{
@@ -58,6 +62,17 @@ namespace BMP{
         }
     };
 
-    Image BMPParser(std::string filename);
+    using Image = BasicImage<RGBPixel>;
+    using GrayImage = BasicImage<uint8_t>;
+
+    // Loaders return an empty image on failure (the reason is printed to std::cerr).
+    // Supported input: uncompressed 24-bit BI_RGB, or 32-bit BI_RGB / BI_BITFIELDS with BGRA masks.
+    Image BMPParser(const std::string &filename);
+
+    // Loads directly into grayscale, converting row by row, so the full RGB image never exists in memory.
+    GrayImage BMPParserGray(const std::string &filename);
+
+    // Both writers produce a 24-bit uncompressed BMP. They return false on any failure, including I/O errors.
     bool BMPWriter(const std::string &filename, const Image &pixels);
+    bool BMPWriter(const std::string &filename, const GrayImage &pixels);
 }

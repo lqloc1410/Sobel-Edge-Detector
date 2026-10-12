@@ -1,39 +1,42 @@
-#include "BMP.hpp"
 #include "GaussianBlur.hpp"
-//using namespace std;
+
 namespace GaussianBlur{
-    inline void applyFilter(int r, int c, const BMP::Image &original_pixels, BMP::Image &destination_pixels){
-        int kernelSize = 3;
-        int halfKernel = kernelSize/2;
-        int sumKernel = 0;
+    namespace {
+        // Out-of-bounds taps are skipped and the result is renormalized by the weights actually used.
+        inline uint8_t applyFilter(std::ptrdiff_t r, std::ptrdiff_t c, const BMP::GrayImage &original_pixels){
+            constexpr std::ptrdiff_t halfKernel = 1;
+            const std::ptrdiff_t height = static_cast<std::ptrdiff_t>(original_pixels.height);
+            const std::ptrdiff_t width = static_cast<std::ptrdiff_t>(original_pixels.width);
 
-        int height = original_pixels.height, width = original_pixels.width;
-        int sum_red = 0, sum_green = 0, sum_blue = 0;
-        for (int dr = -halfKernel; dr <= halfKernel; ++dr){
-            for (int dc = -halfKernel; dc <= halfKernel; ++dc){
-                int nr = r + dr, nc = c + dc;
-                if (nr < 0 or nr >= height or nc < 0 or nc >= width){
-                    continue;
+            int sumKernel = 0;
+            int sum = 0;
+            for (std::ptrdiff_t dr = -halfKernel; dr <= halfKernel; ++dr){
+                for (std::ptrdiff_t dc = -halfKernel; dc <= halfKernel; ++dc){
+                    const std::ptrdiff_t nr = r + dr, nc = c + dc;
+                    if (nr < 0 || nr >= height || nc < 0 || nc >= width){
+                        continue;
+                    }
+
+                    const int weight = GaussianKernel[dr + halfKernel][dc + halfKernel];
+                    sumKernel += weight;
+                    sum += original_pixels(static_cast<size_t>(nr), static_cast<size_t>(nc)) * weight;
                 }
-
-                sumKernel += GaussianKernel[dr + halfKernel][dc + halfKernel];
-                sum_red += static_cast<int>(original_pixels(nr, nc).red) * GaussianKernel[dr + halfKernel][dc + halfKernel];
-                sum_green += static_cast<int>(original_pixels(nr, nc).green) * GaussianKernel[dr + halfKernel][dc + halfKernel];
-                sum_blue += static_cast<int>(original_pixels(nr, nc).blue) * GaussianKernel[dr + halfKernel][dc + halfKernel];
             }
-        }
 
-        destination_pixels(r, c) = {static_cast<uint8_t>(sum_blue/sumKernel), static_cast<uint8_t>(sum_green/sumKernel), static_cast<uint8_t>(sum_red/sumKernel)};
+            return static_cast<uint8_t>(sum / sumKernel);
+        }
     }
 
-    BMP::Image applyFilterAll(const BMP::Image &original_pixels){
-        int height = original_pixels.height, width = original_pixels.width;
-        BMP::Image destination = original_pixels;
-        
+    BMP::GrayImage applyFilterAll(const BMP::GrayImage &original_pixels){
+        const std::ptrdiff_t height = static_cast<std::ptrdiff_t>(original_pixels.height);
+        const std::ptrdiff_t width = static_cast<std::ptrdiff_t>(original_pixels.width);
+        // Every pixel is overwritten below, so allocate instead of copying the source.
+        BMP::GrayImage destination(original_pixels.height, original_pixels.width);
+
         #pragma omp parallel for schedule(static)
-        for (int r = 0; r < height; ++r){
-            for (int c = 0; c < width; ++c){
-                applyFilter(r, c, original_pixels, destination);
+        for (std::ptrdiff_t r = 0; r < height; ++r){
+            for (std::ptrdiff_t c = 0; c < width; ++c){
+                destination(static_cast<size_t>(r), static_cast<size_t>(c)) = applyFilter(r, c, original_pixels);
             }
         }
 
